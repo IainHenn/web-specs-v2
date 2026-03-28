@@ -1,0 +1,9 @@
+grpcio
+grpcio-tools
+protobuf
+psutil
+ping3
+ifcfg
+pynvml
+pyadl
+psycopg2-binary
