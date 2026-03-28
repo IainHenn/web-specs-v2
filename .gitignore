@@ -1,0 +1,39 @@
+# Environments and secrets
+.env
+.env.*
+!.env.example
+/agents/python-agent/venv/
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+
+# Go
+bin/
+*.test
+*.out
+coverage.out
+
+# Rust
+target/
+
+# Generated protobuf code
+/proto/gen/python/**
+/proto/gen/go/**
+
+# Editor/OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
