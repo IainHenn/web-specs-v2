@@ -1,0 +1,159 @@
+metrics-pipeline/
+│
+├── agents/                         # 👈 ALL metric producers
+│   ├── python-agent/
+│   │   ├── main.py
+│   │   ├── client/
+│   │   │   └── grpc_client.py
+│   │   ├── collector/
+│   │   │   └── system_metrics.py
+│   │   ├── streamer/
+│   │   │   └── stream_loop.py
+│   │   ├── config/
+│   │   │   └── config.py
+│   │   └── requirements.txt
+│   │
+│   └── load-tester/
+│       ├── main.py
+│       ├── simulator/
+│       │   └── fake_metrics.py
+│       └── requirements.txt
+│
+├── proto/                          # 👈 shared contracts (VERY IMPORTANT)
+│   ├── metrics/v1/
+│   │   └── metrics.proto
+│   ├── alerts/v1/
+│   │   └── alerts.proto
+│   │
+│   └── gen/
+│       ├── go/
+│       └── python/
+│
+├── shared/                         # 👈 safe reusable Go utilities ONLY
+│   ├── kafka/
+│   │   ├── producer.go
+│   │   └── consumer.go
+│   │
+│   ├── config/
+│   │   └── config.go
+│   │
+│   ├── logger/
+│   │   └── logger.go
+│   │
+│   ├── middleware/
+│   │   ├── retry.go
+│   │   └── tracing.go
+│   │
+│   └── utils/
+│       └── helpers.go
+│
+├── services/
+│
+│   ├── ingestion/                  # 👈 gRPC → Kafka
+│   │   ├── cmd/server/main.go
+│   │   ├── internal/
+│   │   │   ├── app/app.go
+│   │   │   ├── transport/grpc/handler.go
+│   │   │   ├── service/ingestion_service.go
+│   │   │   ├── buffer/batcher.go
+│   │   │   ├── kafka/producer.go
+│   │   │   └── config/config.go
+│   │   ├── go.mod
+│   │   └── Dockerfile
+│
+│   ├── stream-processor/           # 👈 Kafka → Kafka
+│   │   ├── cmd/processor/main.go
+│   │   ├── internal/
+│   │   │   ├── app/app.go
+│   │   │   ├── consumer/consumer.go
+│   │   │   ├── processor/
+│   │   │   │   ├── aggregator.go
+│   │   │   │   └── window.go
+│   │   │   ├── producer/producer.go
+│   │   │   └── config/config.go
+│   │   ├── go.mod
+│   │   └── Dockerfile
+│
+│   ├── alert-service/              # 👈 Kafka → alerts
+│   │   ├── cmd/server/main.go
+│   │   ├── internal/
+│   │   │   ├── app/app.go
+│   │   │   ├── consumer/consumer.go
+│   │   │   ├── detector/anomaly.go
+│   │   │   ├── dedupe/dedupe.go
+│   │   │   ├── producer/producer.go
+│   │   │   └── config/config.go
+│   │   ├── go.mod
+│   │   └── Dockerfile
+│
+│   ├── db-writer/                  # 👈 Kafka → DB
+│   │   ├── cmd/server/main.go
+│   │   ├── internal/
+│   │   │   ├── app/app.go
+│   │   │   ├── consumer/consumer.go
+│   │   │   ├── repository/
+│   │   │   │   └── metrics_repo.go
+│   │   │   ├── models/metric.go
+│   │   │   └── config/config.go
+│   │   ├── go.mod
+│   │   └── Dockerfile
+│
+│   └── api-service/                # 👈 REST + WebSocket
+│       ├── cmd/server/main.go
+│       ├── internal/
+│       │   ├── app/app.go
+│       │   │
+│       │   ├── transport/
+│       │   │   ├── http/
+│       │   │   │   ├── handler.go
+│       │   │   │   └── routes.go
+│       │   │   │
+│       │   │   └── websocket/
+│       │   │       ├── handler.go
+│       │   │       └── client_manager.go
+│       │   │
+│       │   ├── consumer/consumer.go
+│       │   │
+│       │   ├── pubsub/             # 👈 CRITICAL for fan-out
+│       │   │   └── hub.go
+│       │   │
+│       │   ├── service/
+│       │   │   └── metrics_service.go
+│       │   │
+│       │   ├── repository/
+│       │   │   └── query_repo.go
+│       │   │
+│       │   ├── dto/
+│       │   │   ├── request.go
+│       │   │   └── response.go
+│       │   │
+│       │   └── config/config.go
+│       │
+│       ├── go.mod
+│       └── Dockerfile
+│
+├── deployments/                    # 👈 infra
+│   ├── docker/
+│   │   ├── ingestion.Dockerfile
+│   │   ├── api.Dockerfile
+│   │   └── ...
+│   │
+│   ├── docker-compose.yml          # local dev (Kafka, DB, etc.)
+│   │
+│   ├── k8s/
+│   │   ├── ingestion.yaml
+│   │   ├── api.yaml
+│   │   ├── kafka.yaml
+│   │   └── db.yaml
+│   │
+│   └── terraform/                  # optional (cloud infra)
+│
+├── scripts/
+│   ├── gen_proto.sh
+│   ├── run_local.sh
+│   └── load_test.sh
+│
+├── .env
+├── Makefile
+├── go.work                         # 👈 ties all Go modules together
+└── README.md
