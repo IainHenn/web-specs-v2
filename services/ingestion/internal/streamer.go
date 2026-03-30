@@ -27,14 +27,21 @@ func (s *Server) StreamMetrics(stream metricsv1.MetricsService_StreamMetricsServ
 		}
 
 		buffer = append(buffer, metric)
+
+		if len(buffer) >= 500 {
+			if err := sendToKafka(buffer, s.Writer); err != nil {
+				log.Printf("kafka send error: %v", err)
+				return err
+			}
+			buffer = buffer[:0]
+		}
 	}
 
-	if len(buffer) >= 500 {
+	if len(buffer) > 0 {
 		if err := sendToKafka(buffer, s.Writer); err != nil {
 			log.Printf("kafka send error: %v", err)
 			return err
 		}
-		buffer = buffer[:0]
 	}
 
 	return stream.SendAndClose(&metricsv1.Ack{Success: true})

@@ -4,13 +4,7 @@ import json
 
 from ping3 import ping
 import ifcfg 
-import platform
 import pynvml
-import pyadl
-import subprocess
-import psycopg2
-import os
-import datetime
 
 
 def get_gpu_stats():

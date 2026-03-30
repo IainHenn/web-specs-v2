@@ -3,14 +3,24 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 
 	"github.com/yourusername/metrics-ingestion/internal"
 	metricsv1 "github.com/yourusername/metrics-ingestion/proto/gen/go/proto/metrics/v1"
 	"google.golang.org/grpc"
 )
 
+func getenvWithDefault(key, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
 func main() {
-	writer := internal.NewKafkaWriter([]string{"localhost:9092"}, "metrics.raw")
+	kafkaBroker := getenvWithDefault("KAFKA_BROKER", "localhost:9092")
+	writer := internal.NewKafkaWriter([]string{kafkaBroker}, "metrics.raw")
 	defer writer.Close()
 
 	grpcServer := grpc.NewServer()
