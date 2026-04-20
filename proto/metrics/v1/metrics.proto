@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package metrics;
+
+option go_package = "github.com/yourusername/web-specs-v2/proto/gen/go/metrics/v1;metricsv1";
+
+// The metric message
+message Metric {
+  string agent_id = 1;        // which agent is sending
+  string metric_name = 2;     // e.g., cpu
+  double value = 3;           // metric value
+  string unit = 4             // unit
+  int64 timestamp = 5;        // milliseconds since epoch
+  string key = 6;             // anything else that is sub to the category
+}
+
+// Server acknowledgment
+message Ack {
+  bool success = 1;
+}
+
+// The service definition
+service MetricsService {
+  // Stream metrics from agent to server
+  rpc StreamMetrics(stream Metric) returns (Ack);
+}

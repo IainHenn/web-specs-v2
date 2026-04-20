@@ -12,24 +12,24 @@ def get_gpu_stats():
     try:
         pynvml.nvmlInit()
         device_count = pynvml.nvmlDeviceGetCount()
-        gpus = []
+        gpus = {}
         for i in range(device_count):
             handle = pynvml.nvmlDeviceGetHandleByIndex(i)
             name = pynvml.nvmlDeviceGetName(handle).decode()
             memory = pynvml.nvmlDeviceGetMemoryInfo(handle)
             temperature = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
             utilization = pynvml.nvmlDeviceGetUtilizationRates(handle)
-            gpus.append({
+            gpus[f"gpu_{i}"] = {
                 'name': name,
-                'memory_total': memory.total,
-                'memory_used': memory.used,
-                'memory_free': memory.free,
-                'temperature': temperature,
-                'gpu_utilization': utilization.gpu,
-                'memory_utilization': utilization.memory
-            })
+                'memory_total': {'value': memory.total, 'unit': 'bytes'},
+                'memory_used': {'value': memory.used, 'unit': 'bytes'},
+                'memory_free': {'value': memory.free, 'unit': 'bytes'},
+                'temperature': {'value': temperature, 'unit': 'celsius'},
+                'gpu_utilization': {'value': utilization.gpu, 'unit': 'percent'},
+                'memory_utilization': {'value': utilization.memory, 'unit': 'percent'}
+            }
         gpu_info['vendor'] = 'NVIDIA'
-        gpu_info['gpus'] = gpus 
+        gpu_info['gpus'] = gpus
         pynvml.nvmlShutdown()
     except Exception as e:
         gpu_info['error'] = str(e)
@@ -45,10 +45,13 @@ def get_ping():
                 break
         if ip:
             result = ping(ip)
-            return result * 1000000 if result else None
+            if result:
+                # ping3 returns seconds; convert to microseconds for resolution
+                return {'value': result * 1000000, 'unit': 'microseconds'}
+            return None
         return None
     except Exception as e:
-        print("error: {e}")
+        print(f"error: {e}")
         return None
 
 def gather_cpu_times():
@@ -81,10 +84,10 @@ def get_disk_usage():
             disk_usage_info[partition.device] = {
                 "mountpoint": partition.mountpoint,
                 "fstype": partition.fstype,
-                "total": usage.total,
-                "used": usage.used,
-                "free": usage.free,
-                "percent": usage.percent
+                "total": {'value': usage.total, 'unit': 'bytes'},
+                "used": {'value': usage.used, 'unit': 'bytes'},
+                "free": {'value': usage.free, 'unit': 'bytes'},
+                "percent": {'value': usage.percent, 'unit': 'percent'}
             }
         except PermissionError:
             continue
@@ -96,12 +99,12 @@ def get_disk_io_counters():
     result = {}
     for key, value in raw_disks.items():
         result[key] = {
-            'read_count': value.read_count,
-            'write_count': value.write_count,
-            'read_bytes': value.read_bytes,
-            'write_bytes': value.write_bytes,
-            'read_time': value.read_time,
-            'write_time': value.write_time,
+            'read_count': {'value': value.read_count, 'unit': 'count'},
+            'write_count': {'value': value.write_count, 'unit': 'count'},
+            'read_bytes': {'value': value.read_bytes, 'unit': 'bytes'},
+            'write_bytes': {'value': value.write_bytes, 'unit': 'bytes'},
+            'read_time': {'value': value.read_time, 'unit': 'milliseconds'},
+            'write_time': {'value': value.write_time, 'unit': 'milliseconds'},
         }
     return result
 
@@ -112,30 +115,36 @@ def collect_metrics():
     # CPU
     system_info['cpu'] = {}
     user_time, system_time, idle_time = gather_cpu_times()
-    system_info['cpu']['user_time'] = user_time
-    system_info['cpu']['system_time'] = system_time
-    system_info['cpu']['idle_time'] = idle_time
-    system_info['cpu']['percent'] = gather_cpu_percents()
+    system_info['cpu']['user_time'] = {k: {'value': v, 'unit': 'seconds'} for k, v in user_time.items()}
+    system_info['cpu']['system_time'] = {k: {'value': v, 'unit': 'seconds'} for k, v in system_time.items()}
+    system_info['cpu']['idle_time'] = {k: {'value': v, 'unit': 'seconds'} for k, v in idle_time.items()}
+    system_info['cpu']['percent'] = {k: {'value': v, 'unit': 'percent'} for k, v in gather_cpu_percents().items()}
 
     # Memory
     system_info['memory'] = {}
     available_memory, percent_usage, used_memory = gather_virtual_memory_stats()
-    system_info['memory']['available_memory'] = available_memory
-    system_info['memory']['memory_percent_usage'] = percent_usage
-    system_info['memory']['used_memory'] = used_memory
+    system_info['memory']['available_memory'] = {'value': available_memory, 'unit': 'bytes'}
+    system_info['memory']['memory_percent_usage'] = {'value': percent_usage, 'unit': 'percent'}
+    system_info['memory']['used_memory'] = {'value': used_memory, 'unit': 'bytes'}
 
     # Swap memory
     system_info['swap_memory'] = {}
     swap_used_memory, swap_free_memory, swap_percent_usage = gather_swap_memory_stats()
-    system_info['swap_memory']['used_memory'] = swap_used_memory
-    system_info['swap_memory']['free_memory'] = swap_free_memory
-    system_info['swap_memory']['percent_usage'] = swap_percent_usage
+    system_info['swap_memory']['used_memory'] = {'value': swap_used_memory, 'unit': 'bytes'}
+    system_info['swap_memory']['free_memory'] = {'value': swap_free_memory, 'unit': 'bytes'}
+    system_info['swap_memory']['percent_usage'] = {'value': swap_percent_usage, 'unit': 'percent'}
 
     # Disk usage
     system_info['disk_usage'] = get_disk_usage()
 
     # IO
     system_info['io'] = get_disk_io_counters()
+
+    # GPU
+    system_info['gpu'] = get_gpu_stats()
+
+    # Ping (latency to primary interface)
+    system_info['ping'] = get_ping()
 
     return system_info
 

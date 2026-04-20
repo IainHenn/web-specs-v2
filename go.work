@@ -1,1 +1,7 @@
 go 1.26.1
+
+use (
+	./services/api-service
+	./services/db-writer
+	./services/ingestion
+)
